@@ -1,5 +1,5 @@
 {
-  "originHash" : "ebe61b11f978c691dbff91bd160b20e89538eddc368caa4a2bedf70467201119",
+  "originHash" : "3518a3c109742b3e87cbd3ddc637d9de76a1e606d8c6ed2b828d86b4dda11f40",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -134,15 +134,6 @@
       "state" : {
         "revision" : "4799286537280063c85a32f09884cfbca301b1a1",
         "version" : "602.0.0"
-      }
-    },
-    {
-      "identity" : "swift-xcui-page-macros",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mehmetbaykar/swift-xcui-page-macros",
-      "state" : {
-        "revision" : "d1cbe658ff02d84c926563311467d9959dc2d143",
-        "version" : "1.1.0"
       }
     },
     {
