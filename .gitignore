@@ -1,0 +1,10 @@
+.DS_Store
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+*.xcresult
+xcuserdata/
+DerivedData/
+Derived/
+.tuist-*

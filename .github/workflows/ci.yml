@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Fast logic check: builds the package and runs the Swift Testing suite on the host.
+  package-test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Versions
+        run: swift --version && xcodebuild -version
+      - name: Build & test
+        run: swift test
+
+  # Compile coverage across every supported platform.
+  package-build:
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: iOS,      destination: "generic/platform=iOS Simulator" }
+          - { platform: macOS,    destination: "generic/platform=macOS" }
+          - { platform: tvOS,     destination: "generic/platform=tvOS Simulator" }
+          - { platform: watchOS,  destination: "generic/platform=watchOS Simulator" }
+          # visionOS builds without PulseUI: Pulse 5.2.x's `glassEffect` call does not
+          # compile against any visionOS SDK, so Package.swift links PulseUI only on
+          # iOS/tvOS/watchOS. Logging (Pulse + PulseProxy) is still exercised here.
+          - { platform: visionOS, destination: "generic/platform=visionOS Simulator" }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build ${{ matrix.platform }}
+        run: |
+          xcodebuild build \
+            -scheme swift-tca-debug \
+            -destination "${{ matrix.destination }}" \
+            -skipMacroValidation -skipPackagePluginValidation
+
+  # Generates the Tuist example, runs the XCUITest screenshot suite, uploads screenshots.
+  example-ui-tests:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - uses: jdx/mise-action@v4
+      - name: Tuist version
+        run: tuist version
+      - name: Generate project
+        working-directory: Example
+        run: tuist generate --no-open
+      - name: UI tests
+        working-directory: Example
+        run: |
+          xcodebuild test \
+            -workspace Example.xcworkspace \
+            -scheme Example \
+            -destination "platform=iOS Simulator,name=iPhone 17 Pro" \
+            -resultBundlePath TestResults.xcresult \
+            -skipMacroValidation -skipPackagePluginValidation
+      - name: Export screenshots
+        if: always()
+        continue-on-error: true
+        working-directory: Example
+        run: ../Scripts/export-screenshots.sh TestResults.xcresult Screenshots
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: example-screenshots
+          path: Example/Screenshots
+          if-no-files-found: warn
